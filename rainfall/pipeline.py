@@ -4,13 +4,14 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.feature_selection import SelectFromModel
+from sklearn.feature_selection import SelectFromModel, RFE
+from kneed import KneeLocator
+
+
 from sklearn.impute import SimpleImputer
-from sklearn.experimental import enable_halving_search_cv
 from sklearn.model_selection import (
     RandomizedSearchCV,
     StratifiedKFold,
-    HalvingGridSearchCV,
 )
 from pathlib import Path
 from sklearn.pipeline import Pipeline
@@ -28,8 +29,6 @@ def train_and_submit(
 ):
     pipeline = Pipeline(
         [
-            ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
             (
                 "selector",
                 SelectFromModel(
@@ -37,6 +36,8 @@ def train_and_submit(
                     threshold="median",
                 ),
             ),
+            ("imputer", SimpleImputer(strategy="median")),
+            ("scaler", StandardScaler()),
             ("clf", model),
         ]
     )
@@ -51,16 +52,6 @@ def train_and_submit(
         random_state=42,
         n_jobs=-1,
     )
-    # search = HalvingGridSearchCV(
-    #     pipeline,
-    #     param_dist,
-    #     scoring="roc_auc",
-    #     cv=5,
-    #     random_state=42,
-    #     n_jobs=-1,
-    #     factor=2,
-    #     min_resources="exhaust",
-    # )
     search.fit(X_train, y_train)
 
     best_score = search.best_score_
@@ -68,7 +59,29 @@ def train_and_submit(
     print("Best Params:", search.best_params_)
 
     # Extract selected features from the selector step
+    # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
     selector = search.best_estimator_.named_steps["selector"]
+    sorted_idx = np.argsort(selector.estimator_.feature_importances_)[
+        ::-1
+    ]  # Sort descending
+
+    # Compute cumulative sum of importance
+    cumulative_importance = np.cumsum(
+        selector.estimator_.feature_importances_[sorted_idx]
+    )
+
+    # Find elbow point
+    knee_locator = KneeLocator(
+        range(len(cumulative_importance)),
+        cumulative_importance,
+        curve="concave",
+        direction="increasing",
+    )
+    elbow_idx = (
+        knee_locator.knee if knee_locator.elbow else len(cumulative_importance) - 1
+    )
+    rfe = RFE(clf, n_features_to_select=elbow_idx)
+
     selected_mask = selector.get_support()
     selected_features = X_train.columns[selected_mask]
     print(f"Selected features for {model_name}:")
@@ -116,7 +129,7 @@ def model_selector(models, param_grids, X, y, X_test, test_ids, dir):
     sns.barplot(x="AUC", y="Model", data=results_df, palette="viridis")
     plt.title("Model Comparison (Extended Features, IQR-treated & Standard Scaled)")
     plt.xlabel("ROC AUC")
-    plt.xlim(0.75, 1.0)
+    plt.xlim(0.5, 1.0)
     plt.show()
 
     return model_results

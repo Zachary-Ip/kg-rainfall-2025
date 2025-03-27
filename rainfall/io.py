@@ -55,7 +55,7 @@ def save_best_model_submission(model_results):
         raise ValueError("Best model submission file not found.")
     else:
         shutil.copy(best_submission_file, "submission.csv")
-        print(f"Best scoring model: {best_model}")
+        print(f"Best scoring model: {best_model}: {model_results[best_model]:.4f}")
         print(f"Copied {best_submission_file} as 'submission.csv'")
 
     # Confirm all individual model submission files exist

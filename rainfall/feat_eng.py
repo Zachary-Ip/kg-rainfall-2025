@@ -35,6 +35,28 @@ def temp_features(df):
     return df
 
 
+def rolling_features(df, window_sizes=[7, 14]):
+    """
+    Generate rolling window statistics (mean and std) for all numeric columns.
+    Returns a DataFrame with new rolling features as 1D arrays.
+    """
+    df_roll = pd.DataFrame(index=df.index)
+    for col in df.select_dtypes(include=[np.number]).columns:
+        series_col = df[col]
+        for window in window_sizes:
+            roll_mean = series_col.rolling(window=window, min_periods=1).mean().values
+            roll_std = (
+                series_col.rolling(window=window, min_periods=1).std().fillna(0).values
+            )
+            if roll_mean.ndim > 1:
+                roll_mean = roll_mean[:, 0]
+            if roll_std.ndim > 1:
+                roll_std = roll_std[:, 0]
+            df_roll[f"{col}_roll_mean_{window}"] = roll_mean
+            df_roll[f"{col}_roll_std_{window}"] = roll_std
+    return df_roll
+
+
 def interaction_features(df):
     """
     Create interaction features for the dataframe.
@@ -50,13 +72,17 @@ def interaction_features(df):
         df["sunshine_cloud_ratio"] = df["sunshine"] / (df["cloud"] + 1e-3)
 
     if "pressure" in df.columns and "humidity" in df.columns:
-        df["humidity_pressure_ratio"] = df["humitity"] / (df["pressure"] + 1e-3)
+        df["humidity_pressure_ratio"] = df["humidity"] / (df["pressure"] + 1e-3)
 
     if "pressure" in df.columns and "mintemp" in df.columns:
         df["min_temp_pressure_ratio"] = df["mintemp"] / (df["pressure"] + 1e-3)
 
     if "pressure" in df.columns and "dewpoint_diff" in df.columns:
         df["dewpoint_pressure_ratio"] = df["dewpoint_diff"] / (df["pressure"] + 1e-3)
+
+    if "cloud" in df.columns and "humidity" in df.columns:
+        df["cloud_humidity_ratio"] = df["cloud"] * df["humidity"]
+
     return df
 
 
@@ -102,6 +128,8 @@ def add_features(df):
     # Drop the original cyclic columns
     new_df.drop(columns=["day", "month", "winddirection"], inplace=True)
 
+    # Add rolling features
+    new_df = rolling_features(new_df)
     # Treat outliers
     new_df = treat_outliers_iqr(new_df)
 
