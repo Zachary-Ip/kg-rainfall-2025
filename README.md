@@ -13,6 +13,7 @@ The solution leverages extensive feature engineering and a well-structured machi
 - **Clustering-Based Features:** Uses K-means to extract intrinsic data structures as a feature.  
 - **Feature Selection:** Uses an Extra Trees model to measure feature importance, with the **elbow method** determining the optimal number of features.  
 
+![](assets/feature_importance.png)
 ### **Pipeline & Model Selection**  
 - **Imbalanced Data Handling:** Applies **SMOTE** to mitigate class imbalance.  
 - **Hyperparameter Optimization:** Utilizes **Randomized Search Cross-Validation** to fine-tune multiple classification models.  
@@ -21,6 +22,8 @@ The solution leverages extensive feature engineering and a well-structured machi
 ## **Results**  
 - **Cross-Validation ROC-AUC:** **0.8908**  
 - **Test ROC-AUC:** **0.8541**  
+
+![](assets/%20model_comparison.png)
 
 Despite strong performance, further improvements may be possible through alternative feature selection strategies, ensembling, or refining hyperparameter tuning.  
 
