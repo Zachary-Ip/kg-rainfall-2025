@@ -2,6 +2,8 @@ import math
 import numpy as np
 import pandas as pd
 
+from sklearn.preprocessing import PolynomialFeatures
+
 
 def feat_sin(f, max_value):
     # convert day to radians
@@ -33,6 +35,19 @@ def temp_features(df):
         df["temp_change"] = df["temparature"].diff()
         df["temp_change"] = df["temparature"].diff().fillna(0)
     return df
+
+
+def poly_features(df, cols_to_expand):
+    """
+    Generate polynomial features (degree 2) for selected columns.
+    Missing values are imputed (median) before transformation.
+    """
+    df_imputed = df[cols_to_expand].fillna(df[cols_to_expand].median())
+    poly = PolynomialFeatures(degree=2, interaction_only=False, include_bias=False)
+    poly_features = poly.fit_transform(df_imputed)
+    poly_feature_names = poly.get_feature_names_out(cols_to_expand)
+    poly_df = pd.DataFrame(poly_features, columns=poly_feature_names, index=df.index)
+    return poly_df
 
 
 def rolling_features(df, window_sizes=[7, 14]):
@@ -128,8 +143,18 @@ def add_features(df):
     # Drop the original cyclic columns
     new_df.drop(columns=["day", "month", "winddirection"], inplace=True)
 
+    # # Add polynomial features
+    # poly_cols = [
+    #     "cloud",
+    #     "humidity",
+    #     "sunshine",
+    #     "pressure",
+    # ]
+    # poly_df = poly_features(new_df, poly_cols)
+    # new_df = pd.concat([new_df, poly_df], axis=1)
+
     # Add rolling features
-    new_df = rolling_features(new_df)
+    # new_df = rolling_features(new_df)
     # Treat outliers
     new_df = treat_outliers_iqr(new_df)
 

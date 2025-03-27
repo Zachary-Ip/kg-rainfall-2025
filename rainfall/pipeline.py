@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import os
 from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.feature_selection import SelectFromModel, RFE
+from sklearn.feature_selection import SelectFromModel
 
 
 from sklearn.impute import SimpleImputer
@@ -16,11 +16,13 @@ from pathlib import Path
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
 
-np.random.seed(42)
 
 import warnings
+from rainfall.constants import SEED
 
 warnings.filterwarnings("ignore")
+
+np.random.seed(SEED)
 
 
 def train_and_submit(
@@ -31,7 +33,7 @@ def train_and_submit(
             (
                 "selector",
                 SelectFromModel(
-                    ExtraTreesClassifier(n_estimators=100, random_state=42),
+                    ExtraTreesClassifier(n_estimators=100, random_state=SEED),
                     threshold="median",
                 ),
             ),
@@ -41,14 +43,14 @@ def train_and_submit(
         ]
     )
 
-    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
+    cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=SEED)
     search = RandomizedSearchCV(
         pipeline,
         param_dist,
         n_iter=100,
         scoring="roc_auc",
         cv=cv,
-        random_state=42,
+        random_state=SEED,
         n_jobs=-1,
     )
     search.fit(X_train, y_train)
@@ -60,23 +62,6 @@ def train_and_submit(
     # Extract selected features from the selector step
     # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
     selector = search.best_estimator_.named_steps["selector"]
-
-    # Create a dictionary to map feature names to their importance
-    feature_importance = dict(
-        zip(
-            selector.estimator.feature_names_in_,
-            selector.estimator_.feature_importances_,
-        )
-    )
-    # Sort the features by importance
-    sorted_features = sorted(
-        feature_importance.items(), key=lambda x: x[1], reverse=True
-    )
-    # Print the sorted features
-    print("Feature Importance (sorted):")
-    for feature, importance in sorted_features:
-        print(f"{feature}: {importance:.4f}")
-
     selected_mask = selector.get_support()
     selected_features = X_train.columns[selected_mask]
     print(f"Selected features for {model_name}:")

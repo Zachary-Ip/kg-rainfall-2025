@@ -11,16 +11,17 @@ from xgboost import XGBClassifier
 import numpy as np
 
 RESULT_DIR = "results/"
+SEED = 123
 
 MODELS = {
-    "LogisticRegression": LogisticRegression(max_iter=1000, random_state=42),
-    "DecisionTree": DecisionTreeClassifier(random_state=42),
-    "ExtraTrees": ExtraTreesClassifier(random_state=42, n_jobs=-1),
-    "RandomForest": RandomForestClassifier(random_state=42, n_jobs=-1),
-    "XGBoost": XGBClassifier(eval_metric="logloss", random_state=42),
-    # "CatBoost": CatBoostClassifier(verbose=0, random_state=42),
-    # "LGBM": LGBMClassifier(random_state=42),
-    "SVC": SVC(probability=True, random_state=42),
+    "LogisticRegression": LogisticRegression(max_iter=1000, random_state=SEED),
+    "DecisionTree": DecisionTreeClassifier(random_state=SEED),
+    "ExtraTrees": ExtraTreesClassifier(random_state=SEED, n_jobs=-1),
+    "RandomForest": RandomForestClassifier(random_state=SEED, n_jobs=-1),
+    "XGBoost": XGBClassifier(eval_metric="logloss", random_state=SEED),
+    # "CatBoost": CatBoostClassifier(verbose=0, random_state=SEED),
+    # "LGBM": LGBMClassifier(random_state=SEED),
+    "SVC": SVC(probability=True, random_state=SEED),
 }
 
 
