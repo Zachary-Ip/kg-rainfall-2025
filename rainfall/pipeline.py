@@ -2,9 +2,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import os
-from sklearn.ensemble import ExtraTreesClassifier
-from sklearn.feature_selection import SelectFromModel
 
 
 from sklearn.impute import SimpleImputer
@@ -13,12 +10,13 @@ from sklearn.model_selection import (
     StratifiedKFold,
 )
 from pathlib import Path
-from sklearn.pipeline import Pipeline
-from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 
 
 import warnings
 from rainfall.constants import SEED
+from imblearn.pipeline import Pipeline as ImbPipeline
+from imblearn.combine import SMOTETomek
 
 warnings.filterwarnings("ignore")
 
@@ -28,17 +26,19 @@ np.random.seed(SEED)
 def train_and_submit(
     test_ids, X_train, y_train, X_pred, model, param_dist, model_name, dir
 ):
-    pipeline = Pipeline(
+
+    #     "selector",
+    #     SelectFromModel(
+    #         ExtraTreesClassifier(n_estimators=100, random_state=SEED),
+    #         threshold="median",
+    #     ),
+    # ),
+    # Define Pipeline with SMOTE
+    pipeline = ImbPipeline(
         [
-            (
-                "selector",
-                SelectFromModel(
-                    ExtraTreesClassifier(n_estimators=100, random_state=SEED),
-                    threshold="median",
-                ),
-            ),
             ("imputer", SimpleImputer(strategy="median")),
-            ("scaler", StandardScaler()),
+            ("smote", SMOTETomek(random_state=SEED)),  # Over- and under-sampling
+            ("scaler", MinMaxScaler()),
             ("clf", model),
         ]
     )
@@ -47,7 +47,7 @@ def train_and_submit(
     search = RandomizedSearchCV(
         pipeline,
         param_dist,
-        n_iter=100,
+        n_iter=500,
         scoring="roc_auc",
         cv=cv,
         random_state=SEED,
@@ -59,25 +59,25 @@ def train_and_submit(
     print(f"Best CV ROC AUC for {model_name}: {best_score:.4f}")
     print("Best Params:", search.best_params_)
 
-    # Extract selected features from the selector step
-    # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
-    selector = search.best_estimator_.named_steps["selector"]
-    selected_mask = selector.get_support()
-    selected_features = X_train.columns[selected_mask]
-    print(f"Selected features for {model_name}:")
-    print(selected_features.tolist())
+    # # Extract selected features from the selector step
+    # # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
+    # selector = search.best_estimator_.named_steps["selector"]
+    # selected_mask = selector.get_support()
+    # selected_features = X_train.columns[selected_mask]
+    # print(f"Selected features for {model_name}:")
+    # print(selected_features.tolist())
 
-    # Reindex test set to match training set columns
-    training_cols = X_train.columns
-    X_pred_aligned = X_pred.reindex(columns=training_cols, fill_value=0)
+    # # Reindex test set to match training set columns
+    # training_cols = X_train.columns
+    # X_pred_aligned = X_pred.reindex(columns=training_cols, fill_value=0)
 
     try:
         # If applying recursive prediction for lag based features (rain yesterday, days since rain)
         # code would go here
-        preds = search.predict_proba(X_pred_aligned.values)[:, 1]
+        preds = search.predict_proba(X_pred.values)[:, 1]
     except Exception as e:
         print(f"Error in predict_proba for {model_name}: {e}")
-        preds = np.full(len(X_pred_aligned), 0.5)
+        preds = np.full(len(X_pred), 0.5)
 
     output_dir = Path(dir)
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -115,10 +115,3 @@ def model_selector(models, param_grids, X, y, X_test, test_ids, dir):
     plt.show()
 
     return model_results
-
-
-# Test train split
-# from imblearn.over_sampling import SMOTE
-# from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, confusion_matrix
-
-# from sklearn.model_selection import train_test_split

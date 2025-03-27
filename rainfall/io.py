@@ -2,6 +2,8 @@ import pandas as pd
 from rainfall.constants import SUBMISSION_FILES, RESULT_DIR
 import shutil
 
+from sklearn.impute import SimpleImputer
+
 
 def reduce_memory_usage(df):
     """Downcasts numeric columns to reduce memory usage."""
@@ -17,9 +19,19 @@ def load_training_data(path):
     """
     df = pd.read_csv(path)
     df = reduce_memory_usage(df)
+    df.columns = df.columns.str.strip()
 
     if "id" in df.columns:
         df.drop(columns=["id"], inplace=True)
+
+    # If rainfall is in Dtype object strings, convert to 1, 0 floats
+    if df["rainfall"].dtype == "object":
+        df["rainfall"] = df["rainfall"].replace({"no": 0, "yes": 1})
+        df["rainfall"] = df["rainfall"].astype(float)
+    # Impute missing values with median
+
+    imputer = SimpleImputer(strategy="median")
+    df.iloc[:, :] = imputer.fit_transform(df)
 
     X = df.drop(columns=["rainfall"])
     y = df["rainfall"]
@@ -40,9 +52,6 @@ def load_test_data(path):
         test_ids = None
 
     return df, test_ids
-
-
-# Map model names to their saved submission filenames
 
 
 def save_best_model_submission(model_results):

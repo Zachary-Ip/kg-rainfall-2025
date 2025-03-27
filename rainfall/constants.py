@@ -3,15 +3,11 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
 from sklearn.tree import DecisionTreeClassifier
 
-# from catboost import CatBoostClassifier
-from lightgbm import LGBMClassifier
-
 from xgboost import XGBClassifier
-
 import numpy as np
 
 RESULT_DIR = "results/"
-SEED = 123
+SEED = 345
 
 MODELS = {
     "LogisticRegression": LogisticRegression(max_iter=1000, random_state=SEED),
@@ -19,8 +15,6 @@ MODELS = {
     "ExtraTrees": ExtraTreesClassifier(random_state=SEED, n_jobs=-1),
     "RandomForest": RandomForestClassifier(random_state=SEED, n_jobs=-1),
     "XGBoost": XGBClassifier(eval_metric="logloss", random_state=SEED),
-    # "CatBoost": CatBoostClassifier(verbose=0, random_state=SEED),
-    # "LGBM": LGBMClassifier(random_state=SEED),
     "SVC": SVC(probability=True, random_state=SEED),
 }
 
