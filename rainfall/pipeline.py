@@ -26,14 +26,6 @@ np.random.seed(SEED)
 def train_and_submit(
     test_ids, X_train, y_train, X_pred, model, param_dist, model_name, dir
 ):
-
-    #     "selector",
-    #     SelectFromModel(
-    #         ExtraTreesClassifier(n_estimators=100, random_state=SEED),
-    #         threshold="median",
-    #     ),
-    # ),
-    # Define Pipeline with SMOTE
     pipeline = ImbPipeline(
         [
             ("imputer", SimpleImputer(strategy="median")),
@@ -59,21 +51,7 @@ def train_and_submit(
     print(f"Best CV ROC AUC for {model_name}: {best_score:.4f}")
     print("Best Params:", search.best_params_)
 
-    # # Extract selected features from the selector step
-    # # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
-    # selector = search.best_estimator_.named_steps["selector"]
-    # selected_mask = selector.get_support()
-    # selected_features = X_train.columns[selected_mask]
-    # print(f"Selected features for {model_name}:")
-    # print(selected_features.tolist())
-
-    # # Reindex test set to match training set columns
-    # training_cols = X_train.columns
-    # X_pred_aligned = X_pred.reindex(columns=training_cols, fill_value=0)
-
     try:
-        # If applying recursive prediction for lag based features (rain yesterday, days since rain)
-        # code would go here
         preds = search.predict_proba(X_pred.values)[:, 1]
     except Exception as e:
         print(f"Error in predict_proba for {model_name}: {e}")

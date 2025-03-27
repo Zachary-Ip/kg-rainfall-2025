@@ -28,8 +28,8 @@ def load_training_data(path):
     if df["rainfall"].dtype == "object":
         df["rainfall"] = df["rainfall"].replace({"no": 0, "yes": 1})
         df["rainfall"] = df["rainfall"].astype(float)
-    # Impute missing values with median
 
+    # Impute missing values with median
     imputer = SimpleImputer(strategy="median")
     df.iloc[:, :] = imputer.fit_transform(df)
 

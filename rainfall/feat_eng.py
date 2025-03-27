@@ -62,7 +62,6 @@ def add_features(df):
 
     # replace NaN values with 0
     final_df.fillna(0, inplace=True)
-    print("Features check")
     # print any columns that contain missing values
     missing_cols = final_df.columns[final_df.isnull().any()].tolist()
     if missing_cols:
