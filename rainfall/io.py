@@ -1,5 +1,5 @@
 import pandas as pd
-from rainfall.constants import SUBMISSION_FILES
+from rainfall.constants import SUBMISSION_FILES, RESULT_DIR
 import shutil
 
 
@@ -54,7 +54,7 @@ def save_best_model_submission(model_results):
     if best_submission_file is None:
         raise ValueError("Best model submission file not found.")
     else:
-        shutil.copy(best_submission_file, "submission.csv")
+        shutil.copy(best_submission_file, f"{RESULT_DIR}submission.csv")
         print(f"Best scoring model: {best_model}: {model_results[best_model]:.4f}")
         print(f"Copied {best_submission_file} as 'submission.csv'")
 

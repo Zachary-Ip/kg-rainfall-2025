@@ -72,6 +72,8 @@ def train_and_submit(
     X_pred_aligned = X_pred.reindex(columns=training_cols, fill_value=0)
 
     try:
+        # If applying recursive prediction for lag based features (rain yesterday, days since rain)
+        # code would go here
         preds = search.predict_proba(X_pred_aligned.values)[:, 1]
     except Exception as e:
         print(f"Error in predict_proba for {model_name}: {e}")
