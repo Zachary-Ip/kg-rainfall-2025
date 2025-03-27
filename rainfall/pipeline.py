@@ -5,7 +5,6 @@ import seaborn as sns
 import os
 from sklearn.ensemble import ExtraTreesClassifier
 from sklearn.feature_selection import SelectFromModel, RFE
-from kneed import KneeLocator
 
 
 from sklearn.impute import SimpleImputer
@@ -61,26 +60,22 @@ def train_and_submit(
     # Extract selected features from the selector step
     # selector = RFE(estimator=ExtraTreesClassifier(n_estimators=100), n_features_to_select=10)
     selector = search.best_estimator_.named_steps["selector"]
-    sorted_idx = np.argsort(selector.estimator_.feature_importances_)[
-        ::-1
-    ]  # Sort descending
 
-    # Compute cumulative sum of importance
-    cumulative_importance = np.cumsum(
-        selector.estimator_.feature_importances_[sorted_idx]
+    # Create a dictionary to map feature names to their importance
+    feature_importance = dict(
+        zip(
+            selector.estimator.feature_names_in_,
+            selector.estimator_.feature_importances_,
+        )
     )
-
-    # Find elbow point
-    knee_locator = KneeLocator(
-        range(len(cumulative_importance)),
-        cumulative_importance,
-        curve="concave",
-        direction="increasing",
+    # Sort the features by importance
+    sorted_features = sorted(
+        feature_importance.items(), key=lambda x: x[1], reverse=True
     )
-    elbow_idx = (
-        knee_locator.knee if knee_locator.elbow else len(cumulative_importance) - 1
-    )
-    rfe = RFE(clf, n_features_to_select=elbow_idx)
+    # Print the sorted features
+    print("Feature Importance (sorted):")
+    for feature, importance in sorted_features:
+        print(f"{feature}: {importance:.4f}")
 
     selected_mask = selector.get_support()
     selected_features = X_train.columns[selected_mask]
@@ -129,7 +124,7 @@ def model_selector(models, param_grids, X, y, X_test, test_ids, dir):
     sns.barplot(x="AUC", y="Model", data=results_df, palette="viridis")
     plt.title("Model Comparison (Extended Features, IQR-treated & Standard Scaled)")
     plt.xlabel("ROC AUC")
-    plt.xlim(0.5, 1.0)
+    plt.xlim(0.75, 1.0)
     plt.show()
 
     return model_results
